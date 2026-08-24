@@ -1,0 +1,1 @@
+REVOKE EXECUTE ON FUNCTION public.handle_invitation_confirmed() FROM PUBLIC, anon, authenticated;

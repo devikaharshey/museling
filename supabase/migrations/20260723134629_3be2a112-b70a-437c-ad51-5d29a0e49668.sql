@@ -1,0 +1,1 @@
+ALTER TYPE public.group_chat_status ADD VALUE IF NOT EXISTS 'pending_payment' BEFORE 'active';

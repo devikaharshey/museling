@@ -1,0 +1,1 @@
+REVOKE EXECUTE ON FUNCTION public.has_active_founding(uuid) FROM authenticated;
