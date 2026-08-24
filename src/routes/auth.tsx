@@ -46,7 +46,9 @@ export function AuthPage({ initialMode = "signup" }: { initialMode?: "signup" | 
         const { error } = await supabase.auth.signUp({
           email,
           password,
-          options: { emailRedirectTo: window.location.origin },
+          options: {
+            emailRedirectTo: `${window.location.origin}/signup`,
+          },
         });
         if (error) throw error;
         toast.success("Welcome to Museling!");
