@@ -95,6 +95,7 @@ type RazorpayOptions = {
   prefill?: {
     name?: string;
     email?: string;
+    contact?: string;
   };
 
   theme?: {
@@ -156,6 +157,10 @@ function JoinPage() {
 
   const [countryCode, setCountryCode] = useState<string | null>(null);
 
+  const [whatsapp, setWhatsapp] = useState<string | null>(null);
+
+  const [email, setEmail] = useState<string | null>(null);
+
   const [loadingCountry, setLoadingCountry] = useState(true);
 
   const [stripeClientSecret, setStripeClientSecret] = useState<string | null>(null);
@@ -184,21 +189,30 @@ function JoinPage() {
 
   /*
    * ---------------------------------------------------------
-   * Load user's country
+   * Load user's country, WhatsApp number and email
    * ---------------------------------------------------------
    *
-   * country_code was added to profiles and generated into
-   * src/integrations/supabase/types.ts.
+   * country_code and whatsapp are stored in profiles.
+   *
+   * Email comes from the authenticated Supabase user account.
    */
   useEffect(() => {
     let cancelled = false;
 
     async function loadProfile() {
       try {
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+
+        if (!user) {
+          throw new Error("Unable to determine the signed-in user.");
+        }
+
         const { data, error } = await supabase
           .from("profiles")
-          .select("country_code")
-          .eq("id", (await supabase.auth.getUser()).data.user?.id ?? "")
+          .select("country_code, whatsapp")
+          .eq("id", user.id)
           .maybeSingle();
 
         if (error) {
@@ -207,12 +221,14 @@ function JoinPage() {
 
         if (!cancelled) {
           setCountryCode(data?.country_code ?? null);
+          setWhatsapp(data?.whatsapp ?? null);
+          setEmail(user.email ?? null);
         }
       } catch (error) {
-        console.error("Failed to load payment country:", error);
+        console.error("Failed to load payment profile:", error);
 
         if (!cancelled) {
-          setPaymentError("Unable to determine your payment region. Please try again.");
+          setPaymentError("Unable to determine your payment details. Please try again.");
         }
       } finally {
         if (!cancelled) {
@@ -293,6 +309,11 @@ function JoinPage() {
         description: selectedPlan.label,
         order_id: orderResult.orderId,
 
+        prefill: {
+          contact: whatsapp ?? undefined,
+          email: email ?? undefined,
+        },
+
         handler: async (response) => {
           try {
             /*
@@ -304,11 +325,8 @@ function JoinPage() {
             const verification = await verifyRazorpayPayment({
               data: {
                 razorpayOrderId: response.razorpay_order_id,
-
                 razorpayPaymentId: response.razorpay_payment_id,
-
                 razorpaySignature: response.razorpay_signature,
-
                 plan: selected,
               },
             });
